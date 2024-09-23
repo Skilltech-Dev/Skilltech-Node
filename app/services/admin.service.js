@@ -443,6 +443,11 @@ async function getSubscriptionCancelledByAmbassador(param) {
                 }
             },
             {
+                $match: {
+                    cancellation_date: { $ne: null } // Ensure cancellation_date is not null
+                }
+            },
+            {
                 $lookup: {
                     from: "users",
                     localField: "userId",
@@ -517,9 +522,12 @@ async function getSubscriptionCancelledBySubscriber(param) {
                     cancellation_date: {
                         $gte: new Date(startDate),
                         $lte: new Date(endDate)
-                        // $gte: new Date(param.start_date),
-                        // $lte: new Date(param.end_date)
                     }
+                }
+            },
+            {
+                $match: {
+                    cancellation_date: { $ne: null }
                 }
             },
             {
@@ -638,6 +646,7 @@ async function getAllActiveAndInactiveReferralPerAmbassador(param) {
         },
         { $sort: { "createdAt": 1 } }
     ]).exec();
+    console.log("referralData for getAllActiveAndInactiveReferralPerAmbassador", referralData)
 
     const formatDate = (dateString) => {
         const date = new Date(dateString);
@@ -1177,6 +1186,7 @@ async function getBulkPaymentReport(param) {
  * 
  * @result null|Object
  */
+
 async function getConsolidatedInformationReport(param) {
     try {
         let query = {};
@@ -1186,25 +1196,43 @@ async function getConsolidatedInformationReport(param) {
                 $lte: new Date(param.end_date)
             };
         }
+
         const userData = await User.find(query)
-          .select("firstname surname id_number email mobile_number alternate_mobile_number province race gender bank account_number account_holder_name type_of_account bank_proof certificate role is_active referral_code subscription_date subscription_cancellation_date subscription_stopped_payment_date")
-          .exec();
-          console.log("userData", userData);
+            .select("firstname surname id_number email mobile_number alternate_mobile_number province race gender bank account_number account_holder_name type_of_account bank_proof certificate role is_active referral_code subscription_date subscription_cancellation_date subscription_stopped_payment_date")
+            .exec();
 
-        
-        // Filter out the user with email 'admin@gmail.com'
-        const filteredUserData = userData.filter(data => data.role !== 'admin');
+        console.log("userData", userData);
 
+        // Filter out admin users
+        const filteredData = userData.filter(data => data.role !== 'admin');
+
+        // Use Promise.all to handle async operations inside map
+        const filteredUserData = await Promise.all(filteredData.map(async data => {
+            // Fetch referral data for linked ambassador
+            const referralData = await Referral.find({ userId: data._id }).select("referral_code").exec();
+            console.log("referralData for linked referral", referralData);
+            
+            // Add linked ambassador referral if found
+            if (referralData && referralData.length > 0) {
+                data.linked_ambassador_referral = referralData[0].referral_code;
+            } else {
+                data.linked_ambassador_referral = 'none';
+            }
+            return data;
+        }));
+
+        // Helper function to format dates
         const formatDate = (dateString) => {
-            console.log("dateString", dateString)
-            if(dateString !== null) {
+            if (dateString !== null) {
                 const date = new Date(dateString);
                 const day = String(date.getDate()).padStart(2, '0');
                 const month = String(date.getMonth() + 1).padStart(2, '0');
                 const year = date.getFullYear();
                 return `${day}-${month}-${year}`;
             }
+            return 'none';
         };
+
         // Map the user data to the required format
         const result = filteredUserData.map(data => ({
             firstname: data.firstname || 'none',
@@ -1225,14 +1253,15 @@ async function getConsolidatedInformationReport(param) {
             role: data.role === 'ambassador' ? 'Ambassador' : 'Subscriber',
             is_active: data.is_active ? 'Active' : 'Inactive',
             referral_code: data.referral_code || 'none',
-            date_of_subscription: formatDate(data.subscription_date) || 'none',
+            linked_to_ambassador_status: data.linked_ambassador_referral !== 'none' ? 'Y' : 'N',
+            linked_ambassador_referral: data.linked_ambassador_referral || 'none',
+            date_of_subscription: formatDate(data.subscription_date),
             unsubscribe_status: data.is_active ? 'N' : 'Y',
-            unsubscribed_date: formatDate(data.subscription_cancellation_date) || 'none',
+            unsubscribed_date: formatDate(data.subscription_cancellation_date),
             stopped_payment_status: data.subscription_stopped_payment_date ? 'Y' : 'N',
-            stopped_payment_date: formatDate(data.subscription_stopped_payment_date) || 'none',
+            stopped_payment_date: formatDate(data.subscription_stopped_payment_date),
         }));
 
-        // console.log(result);
         return result;
     } catch (error) {
         console.error('An error occurred:', error);
@@ -1508,7 +1537,6 @@ async function getSubscriptionObject(subscription_token) {
     }
   };
   
-
   async function cancelSubscription(user_id, order_id, due_date) {
     console.error("cancelCourseByUser is working");
     console.log("userId", user_id);  
@@ -1524,20 +1552,27 @@ async function getSubscriptionObject(subscription_token) {
         { new: true }
       );
 
-      //For blocking the user on stopped payment by Subscriber
+      //Update User status on stopped payment by Subscriber
       const userBlocked = await User.findOneAndUpdate(
         { _id: userId },
         {is_active: false, subscription_stopped_payment_date: due_date},
         { new: true }
       );
       console.log("userBlocked successfully:", userBlocked);
+
+      //Update Purchasedcourses status on stopped payment by Subscriber
+      const courseData = await Purchasedcourses.findOneAndUpdate(
+        { orderid: orderId },
+        {is_active: false},
+        { new: true }
+      );
+      console.log("updatePurchagedCourses successfully:", courseData);
   
       //For Changing status of Referral code used on stopped payment by Subscriber
-      const courseData = await Purchasedcourses.find({ orderid: orderId }).exec();
-      const isCourseExisted = await Referral.find({ purchagedcourseId: courseData[0]._id }).exec();
+      const isCourseExisted = await Referral.find({ purchagedcourseId: courseData._id }).exec();
       if(isCourseExisted ){
           const referralStatus = await Referral.findOneAndUpdate(
-              { purchagedcourseId: courseData[0]._id },
+              { purchagedcourseId: courseData._id },
               {is_active: false},
               { new: true }
               );
@@ -1617,4 +1652,3 @@ async function getSubscriptionObject(subscription_token) {
 
 /*****************************************************************************************/
 /*****************************************************************************************/
-
