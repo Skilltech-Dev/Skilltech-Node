@@ -80,7 +80,7 @@ router.post("/generate-signature", generateSignature);
 router.post("/save-subscription", saveMembershipSubscription);
 router.get("/get-referral-code", getReferralCode); 
 router.post("/fetch-ambassador-code", fetchAmbassadorCode);
-router.get("/check-referral-code/:code", checkReferralCode);
+router.post("/check-referral-code/:id", checkReferralCode);
 router.get("/get-my-courses/:id", getMyCourses);
 router.get("/get-user-courses/:id", getUserCourses);
 router.post("/save-query", saveQuery);

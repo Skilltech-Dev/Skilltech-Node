@@ -57,7 +57,7 @@ module.exports = {
   saveMembershipSubscription,
   getReferralCode,
   fetchAmbassadorCode,
-  checkReferralCode,
+  checkReferralCode, 
   getMyCourses,
   getUserCourses,
   saveQuery,
@@ -818,13 +818,8 @@ async function saveMembershipSubscription(param) {
 
             //Set purchagedcourseId in Referral document in database
             if(referralCode){
-            const updateReferral = await Referral.findOneAndUpdate(
-              { referral_code: referralCode, userId: param.userid},
-              { $set: { purchagedcourseId:  purchagedcourseId} },
-              { new: true }
-              );
-              console.log("updateReferral", updateReferral)
-            }
+              await emailToAmbassadorForReferralCode(param.userid, referralCode, purchagedcourseId);
+            };
           }
         }else{
           console.log(" Payment is Cancelled")
@@ -1250,22 +1245,47 @@ async function getSubscriptionId(req) {
  */
 async function checkReferralCode(req) {
   try {
-    const {code} = req.params; 
-    const referralCode = code;
-    const { userId, userName } = req.query;
-    console.log("UserID", userId);
-    console.log("referralCode", referralCode);
-    console.log("userName", userName);
+    const userId = req.params.id; 
+    const referralCode = req.body.referralCode;
 
     // Check if referral code is already used
-    const existingReferral = await Referral.findOne({ referral_code: referralCode, userId: userId });
+    const existingReferral = await Referral.findOne({
+      referral_code: referralCode,
+      userId: userId,
+      purchagedcourseId: { $ne: null }
+    });
+    
     if (existingReferral) {
-      return; 
-    }
+      return;
+    };
 
-    // Referral code not used, proceed with creation
-    const countReferral = await User.find({ referral_code: referralCode }).count();
-    console.log("countReferral", countReferral);
+    const referralData = await Referral.create({
+      referral_code: referralCode,
+      userId: userId,
+      is_active: true,
+    });
+
+    const createdReferralData = await referralData.save();
+    console.log("newReferralData", createdReferralData);
+
+    return createdReferralData;
+
+  } catch (error) {
+    console.error("Error:", error);
+    return { status: 500, error: "Internal Server Error" };
+  }
+};
+
+
+async function emailToAmbassadorForReferralCode(userId, referralCode, purchagedcourseId) {
+  try {
+    console.log("UserID", userId);
+    console.log("referralCode", referralCode);
+
+    const subscriberData = await User.find({_id:userId}).select("firstname surname");
+    console.log("subscriberData", subscriberData);
+    const subscriber_firstname = subscriberData[0].firstname;
+    const subscriber_surname = subscriberData[0].surname;
 
     let query = { 
       referral_code: referralCode,
@@ -1277,39 +1297,27 @@ async function checkReferralCode(req) {
      // Check if ambassadorData is an empty array
     if (!ambassadorData.length) {
       return ;
-    }
+    };
 
-    const referralData = await Referral.create({
-      referral_code: referralCode,
-      userId: userId,
-      is_active: true,
-    });
+    const updateReferral = await Referral.findOneAndUpdate(
+      { referral_code: referralCode, userId: userId},
+      { $set: { purchagedcourseId:  purchagedcourseId} },
+      { 
+        new: true, // return the updated document
+        sort: { _id: -1 } // sort by _id in descending order to get the latest document
+      }
+    );
+    console.log("updateReferral", updateReferral);
 
-    const newReferralData = await referralData.save();
-    console.log("newReferralData", newReferralData);
-
-    const data = {
-      countReferral: countReferral,
-      referralData: newReferralData,
-    }
-
-    //For Brevo Email to AMBASSADOR 
-    if(newReferralData){
-      const nameParts = userName.split(' ');
-      const subscriber_firstname = nameParts[0];
-      const subscriber_lastname = nameParts.slice(1).join(' ');
-
+    //For Brevo Email to AMBASSADOR       
       const variables = {
         SUBSCRIBER_FIRSTNAME: subscriber_firstname,
-        SUBSCRIBER_LASTNAME: subscriber_lastname
+        SUBSCRIBER_LASTNAME: subscriber_surname
       };
       const receiverName = ambassadorData[0].firstname + " " + ambassadorData[0].surname;
       const receiverEmail = ambassadorData[0].email;
-      await sendUpdatedContactEmailByBrevo(25, receiverEmail, receiverName, variables, subscriber_firstname, subscriber_lastname);
-    };
-
-    return data;
-
+      await sendUpdatedContactEmailByBrevo(25, receiverEmail, receiverName, variables, subscriber_firstname, subscriber_surname);
+    
   } catch (error) {
     console.error("Error:", error);
     return { status: 500, error: "Internal Server Error" }; // Error response

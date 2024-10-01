@@ -444,7 +444,7 @@ async function getSubscriptionCancelledByAmbassador(param) {
             },
             {
                 $match: {
-                    cancellation_date: { $ne: null } // Ensure cancellation_date is not null
+                    cancellation_date: { $ne: null }
                 }
             },
             {
@@ -1318,7 +1318,7 @@ async function getRegularSubscriptionDataUpdate() {
                 // let payment_status
                 // if(userToken === '4fd12f56-df29-45c6-bf10-1d96bfc756d8') {
                 //     payment_status = `Payment Not Done on ${due_date}`
-                //     cancelPayfastSubscription(token, userId, orderId, due_date);
+                //     cancelPayfastSubscription(token, userId, orderId, current_date);
                 // } else {
                 //     payment_status = `Payment Due Date is ${due_date}`
                 // };
