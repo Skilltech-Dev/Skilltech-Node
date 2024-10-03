@@ -70,7 +70,7 @@ var uploadCertificate = multer({
   { name: "bank_proof", maxCount: 1 },
 ]); 
 
-router.post("/signup", registerValidation, register);
+router.post("/signup", registerValidation, register); 
 router.post("/signin", authenticate);
 router.post('/varify-email-forgot-password/:id', varifyEmailForgotPassword);
 router.post("/subscription", subscription); 

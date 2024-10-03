@@ -774,8 +774,9 @@ async function saveMembershipSubscription(param) {
       }
     );
 
+    let userData = '';
     if(param.payment_status !== 'cancel'){
-      const userData = await User.findOneAndUpdate(
+      userData = await User.findOneAndUpdate(
         { _id: param.userid },
         {
           $set: {
@@ -787,6 +788,7 @@ async function saveMembershipSubscription(param) {
           new: true
         }
       );
+      console.log('userData=', userData);
     };
 
     console.log('subscriberdata=',data);
@@ -824,12 +826,17 @@ async function saveMembershipSubscription(param) {
         }else{
           console.log(" Payment is Cancelled")
         }
-        return res;
+
+        const result = {
+          data: res,
+          userData: userData
+        }
+        return result;
       } else {
         return false;
       }
     } else {
-      console.log("error in res ")
+      console.log("Error in res ")
       return false;
     }
   } catch (err) {
