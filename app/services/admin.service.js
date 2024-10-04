@@ -1277,23 +1277,39 @@ async function getConsolidatedInformationReport(param) {
  * 
  * @result null|Object
  */
-//This crone is to run every mid-night at 12:00 AM
-cron.schedule('0 0 * * *', () => {
+//This crone is to run every mid-night at 12:01 AM
+cron.schedule('1 0 * * *', () => {
     getRegularSubscriptionDataUpdate();
     console.log('Successfully triggered');
 });
 
-// cron.schedule('*/3 * * * *', () => {
-//     getRegularSubscriptionDataUpdate();
+// cron.schedule('*/2 * * * *', () => {
+//     // getRegularSubscriptionDataUpdate();
+//     getTestingOneRegularSubscriptionDataUpdate();
 //   console.log('Successfully triggered');
 // });
+
+//For Stopping payment of one user
+async function getTestingOneRegularSubscriptionDataUpdate() {
+    try {
+        const userId = "66fd312a2132357f29361249";
+        const orderId = "66fd314d2132357f29361259";
+        const token = "26d7b9a3-32ae-418b-b3d6-c0b2c86b8bfc";
+        const current_date = new Date();
+
+        cancelPayfastSubscription(token, userId, orderId, current_date);
+       
+    } catch (error) {
+        console.error("Error parsing merchantData for User ID:", payment.userid, error);
+    }
+};
+
 async function getRegularSubscriptionDataUpdate() {
     try {
         const paymentData = await Subscriptionpayment.find({is_active: true})
           .select("userid merchantData")
           .exec();
 
-        const subscriptionData = [];
         for (const payment of paymentData) {
             try {
                 const parsedMerchantData = JSON.parse(payment.merchantData);
@@ -1305,37 +1321,23 @@ async function getRegularSubscriptionDataUpdate() {
                 // console.log("subscription_object", subscription_object);
 
                 let current_date = new Date();
+                // let current_date = new Date('2024-10-04');
                 current_date.setHours(0, 0, 0, 0);
                 let due_date = new Date(subscription_data.run_date);
                 due_date.setHours(0, 0, 0, 0);
 
                 if(current_date > due_date) {
+                    console.log(`Due date is ${due_date}`);
                     cancelPayfastSubscription(token, userId, orderId, due_date);
+                } else {
+                    console.log("Due date reached. Stopping loop.");
+                    break;
                 }
 
-                // Extra testing condition
-                // let userToken = subscription_data.token;
-                // let payment_status
-                // if(userToken === '4fd12f56-df29-45c6-bf10-1d96bfc756d8') {
-                //     payment_status = `Payment Not Done on ${due_date}`
-                //     cancelPayfastSubscription(token, userId, orderId, current_date);
-                // } else {
-                //     payment_status = `Payment Due Date is ${due_date}`
-                // };
-
-                // const userSubscriptionData = {
-                //     user_id: userId,
-                //     order_id: orderId.toString(),
-                //     due_date: subscription_data.run_date,
-                //     payment_status: payment_status
-                // };
-                // subscriptionData.push(userSubscriptionData);
-                // console.log("userSubscriptionData", userSubscriptionData);
             } catch (error) {
                 console.error("Error parsing merchantData for User ID:", payment.userid, error);
             }
         }
-    
     } catch (error) {
         console.error('An error occurred:', error);
         throw error;
@@ -1388,8 +1390,8 @@ async function getSubscriptionObject(subscription_token) {
         // console.log("Signature:", signature);
         // console.log("Timestamp:", timestamp);
     
-        // const url = `https://api.payfast.co.za/subscriptions/${token}/fetch?testing=true`;
-        const url = `https://api.payfast.co.za/subscriptions/${token}/fetch`;
+        const url = `https://api.payfast.co.za/subscriptions/${token}/fetch?testing=true`;
+        // const url = `https://api.payfast.co.za/subscriptions/${token}/fetch`;
     
         const options = {
             headers: {
@@ -1404,7 +1406,7 @@ async function getSubscriptionObject(subscription_token) {
         // console.log("Request Options:", options);
     
         const response = await axios.get(url, options);
-        // console.log("Request response:", response.data.data.response);
+        console.log("Request response:", response.data.data.response);
   
         return response.data.data.response;
     } catch (err) {
@@ -1472,8 +1474,8 @@ async function getSubscriptionObject(subscription_token) {
         console.log("Signature:", signature);
         console.log("Timestamp:", timestamp);
     
-        // const url = `https://api.payfast.co.za/subscriptions/${token}/cancel?testing=true`;
-        const url = `https://api.payfast.co.za/subscriptions/${token}/cancel`;
+        const url = `https://api.payfast.co.za/subscriptions/${token}/cancel?testing=true`;
+        // const url = `https://api.payfast.co.za/subscriptions/${token}/cancel`;
         const version = 'v1';
     
         const options = {
@@ -1579,7 +1581,10 @@ async function getSubscriptionObject(subscription_token) {
         console.log("referral status changed successfully:", referralStatus);
       };
 
-      handleMoodleUserDeletion(userBlocked.moodle_login_id);
+      if (userBlocked.moodle_login_id != null) {
+        handleMoodleUserDeletion(userBlocked.moodle_login_id);
+    };
+    
   
       //For Brevo email to SUBSCIBER, when stopped payment by Subscriber
       const receiverName = `${userBlocked.firstname} ${userBlocked.surname}`;
