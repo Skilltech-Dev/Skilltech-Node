@@ -1292,9 +1292,9 @@ cron.schedule('1 0 * * *', () => {
 //For Stopping payment of one user
 async function getTestingOneRegularSubscriptionDataUpdate() {
     try {
-        const userId = "66fd312a2132357f29361249";
-        const orderId = "66fd314d2132357f29361259";
-        const token = "26d7b9a3-32ae-418b-b3d6-c0b2c86b8bfc";
+        const userId = "66fd13afb343a6ddff255930";
+        const orderId = "66fd27e72132357f29361229";
+        const token = "00cb7c64-cb22-46dc-9327-89e8b8be3f09";
         const current_date = new Date();
 
         cancelPayfastSubscription(token, userId, orderId, current_date);
@@ -1390,8 +1390,8 @@ async function getSubscriptionObject(subscription_token) {
         // console.log("Signature:", signature);
         // console.log("Timestamp:", timestamp);
     
-        const url = `https://api.payfast.co.za/subscriptions/${token}/fetch?testing=true`;
-        // const url = `https://api.payfast.co.za/subscriptions/${token}/fetch`;
+        // const url = `https://api.payfast.co.za/subscriptions/${token}/fetch?testing=true`;
+        const url = `https://api.payfast.co.za/subscriptions/${token}/fetch`;
     
         const options = {
             headers: {
@@ -1474,8 +1474,8 @@ async function getSubscriptionObject(subscription_token) {
         console.log("Signature:", signature);
         console.log("Timestamp:", timestamp);
     
-        const url = `https://api.payfast.co.za/subscriptions/${token}/cancel?testing=true`;
-        // const url = `https://api.payfast.co.za/subscriptions/${token}/cancel`;
+        // const url = `https://api.payfast.co.za/subscriptions/${token}/cancel?testing=true`;
+        const url = `https://api.payfast.co.za/subscriptions/${token}/cancel`;
         const version = 'v1';
     
         const options = {
@@ -1586,23 +1586,9 @@ async function getSubscriptionObject(subscription_token) {
     };
     
   
-      //For Brevo email to SUBSCIBER, when stopped payment by Subscriber
-      const receiverName = `${userBlocked.firstname} ${userBlocked.surname}`;
-      const receiverEmail = userBlocked.email;
-    //   const bank = userBlocked.bank;
-    //   const branch = userBlocked.branch;
-    //   const type_of_account = userBlocked.type_of_account;
-    //   const account_number = userBlocked.account_number;
-    //   const branch_code = userBlocked.branch_code;
-
-    //   const variables = {
-    //     BANK: bank,
-    //     BRANCH : branch,
-    //     TYPE_OF_ACCOUNT : type_of_account,
-    //     ACCOUNT_NUMBER : account_number,
-    //     BRANCH_CODE : branch_code,
-    //   }
-    //   commonService.sendUpdatedSuspendedContactEmail(49, receiverEmail, receiverName, variables, bank, branch, type_of_account, account_number, branch_code);
+    //For Brevo email to SUBSCIBER, when stopped payment by Subscriber
+    const receiverName = `${userBlocked.firstname} ${userBlocked.surname}`;
+    const receiverEmail = userBlocked.email;
     let sendEmail;
     sendEmail = await commonService.sendEmailByBrevo(49, receiverEmail, receiverName);
       if(userBlocked.role === "ambassador"){
