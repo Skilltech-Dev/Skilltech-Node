@@ -2525,7 +2525,7 @@ async function varifyEmailForgotPassword(req) {
       const reset_token = { id: id, current_date_time: current_date_time };
       const tokenString = JSON.stringify(reset_token); // Convert object to JSON string
       const tokenData = btoa(tokenString); // Encode the JSON string to Base64
-
+  
       // const forgot_password_link = `https://affiliate.skilltechsa.online/forgot-password?reset-token=${tokenData}`
       const forgot_password_link = `https://highvista.co.za/forgot-password?reset-token=${tokenData}`
 
