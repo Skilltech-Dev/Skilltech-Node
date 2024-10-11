@@ -2526,10 +2526,8 @@ async function varifyEmailForgotPassword(req) {
       const tokenString = JSON.stringify(reset_token); // Convert object to JSON string
       const tokenData = btoa(tokenString); // Encode the JSON string to Base64
 
-      // const userId = btoa(id);
-      // const dateTime = btoa(current_date_time);
-      // const forgot_password_link = `https://affiliate.skilltechsa.online/forgot-password?var1=${userId}&var2=${dateTime}`
-      const forgot_password_link = `https://affiliate.skilltechsa.online/forgot-password?reset-token=${tokenData}`
+      // const forgot_password_link = `https://affiliate.skilltechsa.online/forgot-password?reset-token=${tokenData}`
+      const forgot_password_link = `https://highvista.co.za/forgot-password?reset-token=${tokenData}`
 
       //Brevo email for changing password
       let addSubscriber;
