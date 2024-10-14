@@ -1931,7 +1931,13 @@ async function cancelCourseByUser(req) {
     //For Brevo email to SUBSCIBER, when user unsubscribe the subscription
     const subscriberName = `${userBlocked.firstname} ${userBlocked.surname}`
     console.log("subscriberName", subscriberName);
-    await sendEmailByBrevo(14, userBlocked.email, subscriberName); 
+    let sendEmail;
+    sendEmail = await sendEmailByBrevo(14, userBlocked.email, subscriberName);
+    if(userBlocked.role === "ambassador"){
+      if(sendEmail){
+          await commonService.deleteContactBrevo(receiverEmail);
+      }
+    };
 
     //For Brevo email to AMBASSADOR, when user unsubscribe the subscription
     if(userBlocked.role !== "ambassador"){
@@ -2187,9 +2193,10 @@ async function getSubscriptionCancelledbySubscriber(req) {
     
     const ambassador = await User.findById(id);
     const referrals = await Referral.find({ referral_code: ambassador.referral_code });
+    onsole.log("referralss: ", referrals);
     const userIds = referrals.map(referral => referral.userId);
 
-    console.log("Ambassador userID numbetrs: ", userIds.length);
+    console.log("Ambassador userID numbetrs: ", userIds);
 
     let query = {};
     if (param && param.start_date && param.end_date) {
@@ -2525,7 +2532,7 @@ async function varifyEmailForgotPassword(req) {
       const reset_token = { id: id, current_date_time: current_date_time };
       const tokenString = JSON.stringify(reset_token); // Convert object to JSON string
       const tokenData = btoa(tokenString); // Encode the JSON string to Base64
-  
+
       // const forgot_password_link = `https://affiliate.skilltechsa.online/forgot-password?reset-token=${tokenData}`
       const forgot_password_link = `https://highvista.co.za/forgot-password?reset-token=${tokenData}`
 
