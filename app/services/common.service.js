@@ -2192,7 +2192,7 @@ async function getSubscriptionCancelledbySubscriber(req) {
     let id = req.body.userId;
     
     const ambassador = await User.findById(id);
-    const referrals = await Referral.find({ referral_code: ambassador.referral_code });
+    const referrals = await Referral.find({ referral_code: ambassador.referral_code, purchagedcourseId: { $ne: null } });
     console.log("referralss: ", referrals);
     const userIds = referrals.map(referral => referral.userId);
 
