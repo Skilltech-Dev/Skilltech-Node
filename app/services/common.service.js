@@ -743,14 +743,13 @@ async function updateDataforResetPassword(userId) {
  */
 async function saveMembershipSubscription(param) {
   try {
-    console.log("Param data: ", param)
-    const referralCode = param.referralCode; 
+    console.log("Param data: ", param);
+    const referralCode = param.referralCode;
 
     const data = await Subscriptionpayment.findOneAndUpdate(
       { _id: param.id },
       {
         $set: {
-          // role: "subscriber",
           plan_name: param.merchantData.item_name,
           subscription_type: param.merchantData.subscription_type,
           frequency: param.merchantData.frequency,
@@ -765,17 +764,14 @@ async function saveMembershipSubscription(param) {
           is_recurring: param.is_recurring,
           userid: param.userid,
           is_active: param.is_active,
-          // merchantData : JSON.stringify(param.merchantData),
           uuid: param.uuid,
         },
       },
-      {
-        new: true
-      }
+      { new: true }
     );
 
     let userData = '';
-    if(param.payment_status !== 'cancel'){
+    if (param.payment_status !== 'cancel') {
       userData = await User.findOneAndUpdate(
         { _id: param.userid },
         {
@@ -784,66 +780,166 @@ async function saveMembershipSubscription(param) {
             subscription_date: new Date(),
           },
         },
-        {
-          new: true
-        }
+        { new: true }
       );
       console.log('userData=', userData);
-    };
+    }
 
-    console.log('subscriberdata=',data);
-    if (param.id) {
-      let res = await Subscriptionpayment.findById(param.id).select(
-        "-plan_name -payment_mode -payment_status -amount -payment_cycle -is_recurring -userid -is_active"
-      );
-      if (res) {
-        let courseDatas = param.coursesData;
+    console.log('subscriberdata=', data);
 
-        if (courseDatas && param.payment_status === 'success') {
-          for (var i = 0; i < Object.keys(courseDatas).length; i++) {
-            const purchasedcourses = new Purchasedcourses({
-              courseid: courseDatas[i].id, 
-              orderid: data._id,
-              quantity: courseDatas[i].quantity,
-              userId: param.userid,
-              course_title: courseDatas[i].title,
-              course_price: courseDatas[i].price,
-              paymentType: courseDatas[i].paymentType,
-              image: courseDatas[i].image,
-              course_category: "",
-              is_active : param.is_active,
-            });
-            await purchasedcourses.save();
-            console.log("purchasedcourses", purchasedcourses);
-
-            const purchagedcourseId = purchasedcourses._id;
-
-            //Set purchagedcourseId in Referral document in database
-            if(referralCode){
-              await emailToAmbassadorForReferralCode(param.userid, referralCode, purchagedcourseId);
-            };
-          }
-        }else{
-          console.log(" Payment is Cancelled")
-        }
-
-        const result = {
-          data: res,
-          userData: userData
-        }
-        return result;
-      } else {
-        return false;
-      }
-    } else {
-      console.log("Error in res ")
+    if (!param.id) {
+      console.log("Error in res");
       return false;
     }
+
+    const res = await Subscriptionpayment.findById(param.id).select(
+      "-plan_name -payment_mode -payment_status -amount -payment_cycle -is_recurring -userid -is_active"
+    );
+
+    if (!res) return false;
+
+    const courseDatas = param.coursesData;
+
+    if (courseDatas && param.payment_status === 'success') {
+      for (var i = 0; i < Object.keys(courseDatas).length; i++) {
+        const purchasedcourses = new Purchasedcourses({
+          courseid: courseDatas[i].id,
+          orderid: data._id,
+          quantity: courseDatas[i].quantity,
+          userId: param.userid,
+          course_title: courseDatas[i].title,
+          course_price: courseDatas[i].price,
+          paymentType: courseDatas[i].paymentType,
+          image: courseDatas[i].image,
+          course_category: "",
+          is_active : param.is_active,
+        });
+
+        await purchasedcourses.save();
+        console.log("purchasedCourse", purchasedcourses);
+
+        if (referralCode) {
+          await emailToAmbassadorForReferralCode(param.userid, referralCode, purchasedcourses._id);
+        }
+      }
+    } else {
+      console.log("Payment is Cancelled");
+    }
+
+    return {
+      data: res,
+      userData: userData,
+    };
+
   } catch (err) {
     console.log("Error", err);
     return false;
   }
-};
+}
+
+// async function saveMembershipSubscription(param) {
+//   try {
+//     console.log("Param data: ", param)
+//     const referralCode = param.referralCode; 
+
+//     const data = await Subscriptionpayment.findOneAndUpdate(
+//       { _id: param.id },
+//       {
+//         $set: {
+//           // role: "subscriber",
+//           plan_name: param.merchantData.item_name,
+//           subscription_type: param.merchantData.subscription_type,
+//           frequency: param.merchantData.frequency,
+//           billing_date: param.merchantData.billing_date,
+//           payment_mode: "Credit Card",
+//           payment_status: param.payment_status,
+//           amount: param.merchantData.amount,
+//           payment_cycle: param.merchantData.cycles,
+//           item_name: param.merchantData.item_name,
+//           item_description: param.merchantData.item_description,
+//           m_payment_id: param.merchantData.m_payment_id,
+//           is_recurring: param.is_recurring,
+//           userid: param.userid,
+//           is_active: param.is_active,
+//           // merchantData : JSON.stringify(param.merchantData),
+//           uuid: param.uuid,
+//         },
+//       },
+//       {
+//         new: true
+//       }
+//     );
+
+//     let userData = '';
+//     if(param.payment_status !== 'cancel'){
+//       userData = await User.findOneAndUpdate(
+//         { _id: param.userid },
+//         {
+//           $set: {
+//             role: "subscriber",
+//             subscription_date: new Date(),
+//           },
+//         },
+//         {
+//           new: true
+//         }
+//       );
+//       console.log('userData=', userData);
+//     };
+
+//     console.log('subscriberdata=',data);
+//     if (param.id) {
+//       let res = await Subscriptionpayment.findById(param.id).select(
+//         "-plan_name -payment_mode -payment_status -amount -payment_cycle -is_recurring -userid -is_active"
+//       );
+//       if (res) {
+//         let courseDatas = param.coursesData;
+
+//         if (courseDatas && param.payment_status === 'success') {
+//           for (var i = 0; i < Object.keys(courseDatas).length; i++) {
+//             const purchasedcourses = new Purchasedcourses({
+//               courseid: courseDatas[i].id, 
+//               orderid: data._id,
+//               quantity: courseDatas[i].quantity,
+//               userId: param.userid,
+//               course_title: courseDatas[i].title,
+//               course_price: courseDatas[i].price,
+//               paymentType: courseDatas[i].paymentType,
+//               image: courseDatas[i].image,
+//               course_category: "",
+//               is_active : param.is_active,
+//             });
+//             await purchasedcourses.save();
+//             console.log("purchasedcourses", purchasedcourses);
+
+//             const purchagedcourseId = purchasedcourses._id;
+
+//             //Set purchagedcourseId in Referral document in database
+//             if(referralCode){
+//               await emailToAmbassadorForReferralCode(param.userid, referralCode, purchagedcourseId);
+//             };
+//           }
+//         }else{
+//           console.log(" Payment is Cancelled")
+//         }
+
+//         const result = {
+//           data: res,
+//           userData: userData
+//         }
+//         return result;
+//       } else {
+//         return false;
+//       }
+//     } else {
+//       console.log("Error in res ")
+//       return false;
+//     }
+//   } catch (err) {
+//     console.log("Error", err);
+//     return false;
+//   }
+// };
 
 /*****************************************************************************************/
 /*****************************************************************************************/
