@@ -1254,14 +1254,26 @@ async function payFastNotify(param, spayId) {
     }
     console.log("ITN Data:", itnData);
 
-    const updatedPaymentData = await Subscriptionpayment.updateMany(
-          { _id: spayId.id },
-          {
-            $set: {
-              merchantData: JSON.stringify(itnData),
-            },
-          }
-        );
+    // const updatedPaymentData = await Subscriptionpayment.updateMany(
+    //       { _id: spayId.id },
+    //       {
+    //         $set: {
+    //           merchantData: JSON.stringify(itnData),
+    //         },
+    //       }
+    //     );
+    const updatedPaymentData = await Subscriptionpayment.findOneAndUpdate(
+      { _id: spayId.id },
+      {
+        $set: {
+          merchantData: JSON.stringify(itnData),
+        },
+      },
+      { 
+        new: true, // return the updated document
+        sort: { _id: -1 } // sort by _id in descending order to get the latest document
+      }
+    );
     
         console.log("updatedSubscriptionData", updatedPaymentData);
     return itnData;
