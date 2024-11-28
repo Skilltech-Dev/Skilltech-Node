@@ -1327,7 +1327,11 @@ async function getRegularSubscriptionDataUpdate() {
                 let due_date = new Date(subscription_data.run_date);
                 due_date.setHours(0, 0, 0, 0);
 
-                if(current_date > due_date) {
+                // Add 2 more days to the due date
+                let extended_due_date = new Date(due_date);
+                extended_due_date.setDate(due_date.getDate() + 2);
+
+                if(current_date > extended_due_date) {
                     console.log(`Due date is ${due_date}`);
                     cancelPayfastSubscription(token, userId, orderId, due_date);
                 } else {
