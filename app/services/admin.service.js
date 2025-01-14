@@ -1129,7 +1129,7 @@ async function getBulkPaymentReport(param) {
         
         const result = ambassadorData.reduce((acc, data) => {
             const referralCount = ambassadors.filter(referral => referral.referral_code === data.referral_code).length;
-            const amountDue = referralCount * 5;
+            const amountDue = referralCount * 250;
             acc.push({
                 recipient_name: `${data.firstname} ${data.surname}`,
                 recipient_account: data.account_number || 'N/A',
